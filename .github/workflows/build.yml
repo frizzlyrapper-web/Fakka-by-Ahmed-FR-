@@ -1,4 +1,4 @@
-name: Build Flutter APK
+name: Build Flutter APK From Single File
 
 on:
   push:
@@ -26,21 +26,27 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Install dependencies
+      # خطوة السحر: إنشاء بيئة فلاتر كاملة داخل السيرفر وتثبيت مكتبة الـ NFC
+      - name: Create Scratch Flutter Project
         run: |
-          TARGET_DIR=$(find . -name "pubspec.yaml" -exec dirname {} \;)
-          echo "Found Flutter project root at: $TARGET_DIR"
-          cd $TARGET_DIR
-          flutter pub get
+          flutter create running_project --org com.fakka.ahmed
+          cd running_project
+          flutter pub add nfc_manager
 
+      # خطوة نقل كودك الخاص إلى داخل المشروع الجديد ليتم بناؤه
+      - name: Inject Ahmed Code
+        run: |
+          cp Fakka running_project/lib/main.dart
+
+      # بناء الـ APK الفعلي
       - name: Build APK
         run: |
-          TARGET_DIR=$(find . -name "pubspec.yaml" -exec dirname {} \;)
-          cd $TARGET_DIR
+          cd running_project
           flutter build apk --release
 
+      # رفع الملف النهائي لتحميله
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: release-apk
-          path: "**/build/app/outputs/flutter-apk/app-release.apk"
+          path: "running_project/build/app/outputs/flutter-apk/app-release.apk"
