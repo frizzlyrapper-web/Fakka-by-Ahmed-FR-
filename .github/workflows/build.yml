@@ -1,4 +1,4 @@
-name: Build Flutter APK From Single File
+name: Build Flutter APK
 
 on:
   push:
@@ -26,25 +26,21 @@ jobs:
         with:
           channel: 'stable'
 
-      # خطوة السحر: إنشاء بيئة فلاتر كاملة داخل السيرفر وتثبيت مكتبة الـ NFC
+      # السحر هنا: بيعمل مشروع في السيرفر وينقل ملفاتك من الواجهة مباشرة جوا lib
       - name: Create Scratch Flutter Project
         run: |
           flutter create running_project --org com.fakka.ahmed
           cd running_project
           flutter pub add nfc_manager
+          cp ../main.dart lib/main.dart
+          cp ../pubspec.yaml pubspec.yaml
 
-      # خطوة نقل كودك الخاص إلى داخل المشروع الجديد ليتم بناؤه
-      - name: Inject Ahmed Code
-        run: |
-          cp Fakka running_project/lib/main.dart
-
-      # بناء الـ APK الفعلي
       - name: Build APK
         run: |
           cd running_project
+          flutter pub get
           flutter build apk --release
 
-      # رفع الملف النهائي لتحميله
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
