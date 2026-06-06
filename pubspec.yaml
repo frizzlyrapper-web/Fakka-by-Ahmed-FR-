@@ -1,15 +1,16 @@
-name: fakka_app
-description: Fakka Currency and NFC App
+name: fakka
+description: "Fakka Wallet Application by Ahmed FR"
+publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ">=3.0.0 <4.0.0"
+  sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.2
-  nfc_manager: ^3.3.0 # مكتبة الـ NFC اللي بيحتاجها كودك
+  cupertino_icons: ^1.0.5
+  nfc_manager: ^3.5.1
 
 dev_dependencies:
   flutter_test:
