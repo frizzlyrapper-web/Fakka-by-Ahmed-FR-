@@ -1,21 +1,12 @@
-name: fakka
-description: "Fakka Wallet Application by Ahmed FR"
-publish_to: 'none'
-version: 1.0.0+1
-
-environment:
-  sdk: '>=3.0.0 <4.0.0'
-
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.5
-  nfc_manager: ^3.5.1
-
-dev_dependencies:
-  flutter_test:
-    sdk: flutter
-  flutter_lints: ^2.0.0
-
-flutter:
-  uses-material-design: true
+  nfc_manager: ^3.6.0
+  encrypt: ^5.0.0
+  shared_preferences: ^2.2.0
+  intl: ^0.18.0
+  crypto: ^3.0.0
+  local_auth: ^2.1.0              # Biometric auth
+  qr_flutter: ^4.0.0              # QR codes
+  http: ^1.1.0                    # Server sync
+  flutter_secure_storage: ^9.0.0  # Secure key storage
