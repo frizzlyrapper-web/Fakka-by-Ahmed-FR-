@@ -31,14 +31,10 @@ class MainLayout extends StatefulWidget {
 }
 
 class _MainLayoutState extends State<MainLayout> {
-  int _currentIndex = 0;
-  
   int _virtualBalance = 7500; 
   int _escrowBalance = 4250;    
   
   String _statusMessage = "مرحباً يا أحمد 👋 محفظة فكة جاهزة للمعاملات الفورية";
-  String _escrowDetails = "المعاملات النشطة: شحن بضاعة إلى ولاية أخرى (معلقة بالضمان)";
-  bool _hasActiveEscrow = true;
   final String _myAccountNumber = "FK-99241"; 
 
   final List<Map<String, String>> _aiMessages = [
@@ -60,7 +56,7 @@ class _MainLayoutState extends State<MainLayout> {
       bool isAvailable = await NfcManager.instance.isAvailable();
       if (!isAvailable) {
         setState(() {
-          _statusMessage = "مستشعر NFC غير نشط. يمكنك استخدام رقم الحساب أو الـ QR للتحويل.";
+          _statusMessage = "مستشعر NFC غير نشط. يمكنك استخدام رقم الحساب للتحويل.";
         });
       }
     } catch (e) {
@@ -68,36 +64,35 @@ class _MainLayoutState extends State<MainLayout> {
     }
   }
 
-  void _showSnackBar(String message) {
+  void _showSnackBar(String message, {bool isError = true}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message, textDirection: TextDirection.rtl),
-        backgroundColor: Colors.red,
+        backgroundColor: isError ? Colors.red[800] : Colors.green[800],
       ),
     );
   }
 
   void _handleAiResponse(String userText) {
+    if (userText.trim().isEmpty) return;
     String reply = "";
     String text = userText.toLowerCase();
 
-    if (text.contains("ضمان") || text.contains("ولايات") || text.contains("حجز")) {
-      reply = "🛡️ نظام الضمان يحمي قروش المعاملات بين الولايات. القروش الحالية المحجوزة (4,250 SDG) معلقة أماناً حتى يتأكد المستلم من وصول الشحنة.";
+    if (text.contains("ضمان") || text.contains("ولايات")) {
+      reply = "🛡️ نظام الضمان يحمي المعاملات التجارية بين الولايات. المبالغ الحالية (4,250 SDG) معلقة بأمان لحين استلام الشحنة.";
     } else if (text.contains("nfc") || text.contains("بث")) {
-      reply = "⚡ ميزة الـ NFC تفاعلية بالكامل! اضغط على 'بث NFC' وقرب ظهر هاتف المرسل والمستلم لإتمام تبادل الفكة فورياً.";
+      reply = "⚡ اضغط على زر البث في الأسفل وقرّب ظهر هاتفك من هاتف الطرف الآخر لإتمام تبادل الفكة فورياً عبر الـ NFC.";
     } else if (text.contains("رصيد") || text.contains("كم معي")) {
-      reply = "💰 رصيدك الحالي المتاح هو $_virtualBalance SDG والأموال المحمية في الضمان هي $_escrowBalance SDG.";
-    } else if (text.contains("سلام") || text.contains("مرحب")) {
-      reply = "أهلاً بك يا أحمد! كيف يمكن لمساعد فكة الذكي أن يخدمك الآن؟";
+      reply = "💰 رصيدك المتاح الحالي هو $_virtualBalance SDG والأموال في الضمان هي $_escrowBalance SDG.";
     } else {
-      reply = "🤖 أنا هنا لمساعدتك في إدارة حسابك 'فكة بلس'، تتبع شحنات الولايات، تفعيل كروت الـ NFC، والإجابة على أي استفسار مالي.";
+      reply = "🤖 أنا هنا لمساعدتك في إدارة محفظة فكة، تتبع أموال الضمان، وتسهيل الدفع اللاتلامسي.";
     }
 
     setState(() {
       _aiMessages.add({"sender": "user", "text": userText});
     });
 
-    Future.delayed(const Duration(milliseconds: 500), () {
+    Future.delayed(const Duration(milliseconds: 400), () {
       setState(() {
         _aiMessages.add({"sender": "ai", "text": reply});
       });
@@ -106,18 +101,22 @@ class _MainLayoutState extends State<MainLayout> {
   }
 
   void _sendNfc(int amount) async {
+    bool isAvailable = await NfcManager.instance.isAvailable();
+    if (!isAvailable) {
+      _showSnackBar("عذراً، ميزة الـ NFC معطلة أو غير مدعومة في هذا الجهاز.");
+      return;
+    }
     if (_virtualBalance < amount) {
       _showSnackBar("عفواً! الرصيد المتاح الحالي لا يكفي لبث هذا المبلغ.");
       return;
     }
-    setState(() => _statusMessage = "جاري بث $amount SDG... قَرّب الهاتف من الجهاز الآخر الآن ⚡");
-    
+    setState(() => _statusMessage = "جاري بث $amount SDG... قَرّب الهاتف الآن ⚡");
     try {
       NfcManager.instance.startSession(onDiscovered: (NfcTag tag) async {
         try {
           Ndef? ndef = Ndef.from(tag);
           if (ndef == null || !ndef.isWritable) {
-            setState(() => _statusMessage = "فشل: جهاز الطرف الآخر غير مدعوم أو مغلق.");
+            setState(() => _statusMessage = "فشل: جهاز الطرف الآخر غير مدعوم.");
             NfcManager.instance.stopSession();
             return;
           }
@@ -134,10 +133,9 @@ class _MainLayoutState extends State<MainLayout> {
         }
       });
     } catch (e) {
-      setState(() => _statusMessage = "خطأ في تشغيل جلسة NFC: $e");
+      setState(() => _statusMessage = "خطأ في تشغيل الـ NFC: $e");
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -153,10 +151,8 @@ class _MainLayoutState extends State<MainLayout> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // كارت المحفظة الرئيسي
               Card(
                 color: const Color(0xFF1B5E20),
-                elevation: 4,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -169,8 +165,8 @@ class _MainLayoutState extends State<MainLayout> {
                       Row(
                         justifyAxisAlignment: MainAxisAlignment.between,
                         children: [
-                          Text('ضمان الولايات: $_escrowBalance SDG', style: const TextStyle(color: Colors.white70, fontSize: 13)),
-                          Text('حساب: $_myAccountNumber', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                          Text('ضمان الولايات: $_escrowBalance SDG', style: const TextStyle(color: Colors.white70)),
+                          Text('حساب: $_myAccountNumber', style: const TextStyle(color: Colors.white70)),
                         ],
                       )
                     ],
@@ -178,22 +174,14 @@ class _MainLayoutState extends State<MainLayout> {
                 ),
               ),
               const SizedBox(height: 12),
-              // حالة الـ NFC أو النظام
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(8)),
-                child: Row(
-                  children: [
-                    const Icon(Icons.info_outline, color: Color(0xFF1B5E20), size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(_statusMessage, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
-                  ],
-                ),
+                child: Text(_statusMessage, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
               ),
               const SizedBox(height: 15),
-              const Text('مساعد فكة الذكي 🤖', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const Text('مساعد فكة الذكي 🤖', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
               const SizedBox(height: 5),
-              // شات الذكاء الاصطناعي
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(border: Border.all(color: Colors.grey[300]!), borderRadius: BorderRadius.circular(10)),
@@ -212,7 +200,7 @@ class _MainLayoutState extends State<MainLayout> {
                             color: isAi ? Colors.green[50] : Colors.blue[50],
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Text(msg["text"] ?? "", style: const TextStyle(fontSize: 13)),
+                          child: Text(msg["text"] ?? ""),
                         ),
                       );
                     },
@@ -220,46 +208,33 @@ class _MainLayoutState extends State<MainLayout> {
                 ),
               ),
               const SizedBox(height: 8),
-              // إدخال الشات
               Row(
                 children: [
                   Expanded(
                     child: TextField(
                       controller: _aiInputController,
                       decoration: const InputDecoration(
-                        hintText: 'اسأل المساعد (مثال: رصيد، ضمان)...',
+                        hintText: 'اسأل المساعد...',
                         border: OutlineInputBorder(),
                         contentPadding: EdgeInsets.symmetric(horizontal: 10),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 5),
                   IconButton(
                     icon: const Icon(Icons.send, color: Color(0xFF1B5E20)),
-                    onPressed: () {
-                      if (_aiInputController.text.isNotEmpty) {
-                        _handleAiResponse(_aiInputController.text);
-                      }
-                    },
+                    onPressed: () => _handleAiResponse(_aiInputController.text),
                   )
                 ],
               ),
               const SizedBox(height: 15),
-              // زر بث الـ NFC الدائري والسريع
-              Center(
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton.icon(
-                    onPressed: () => _sendNfc(500), // يبث 500 كمثال عند الضغط
-                    icon: const Icon(Icons.wifi_protected_setup),
-                    label: const Text('بث فكة عبر الـ NFC (500 SDG)', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.amber[700],
-                      foregroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton.icon(
+                  onPressed: () => _sendNfc(500), 
+                  icon: const Icon(Icons.nfc),
+                  label: const Text('بث فكة عبر الـ NFC (500 SDG)'),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.amber[700], foregroundColor: Colors.black),
                 ),
               )
             ],
@@ -269,4 +244,3 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 }
- 
