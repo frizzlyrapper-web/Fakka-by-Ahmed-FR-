@@ -3,7 +3,7 @@ import 'package:nfc_manager/nfc_manager.dart';
 
 void main() {
   runApp(const FakkaApp());
-}
+} 
 
 class FakkaApp extends StatelessWidget {
   const FakkaApp({Key? key}) : super(key: key);
